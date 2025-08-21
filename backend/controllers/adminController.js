@@ -8,52 +8,100 @@ const reportGenerator = require('../utils/reportGenerator');
 // Admin login
 exports.adminLogin = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
     
-    if (!email || !password) {
-      return res.status(400).json({ msg: 'Please provide email and password' });
+    // Validate input
+    if (!username || !password) {
+      return res.status(400).json({ 
+        success: false,
+        msg: 'Please provide username and password' 
+      });
     }
 
-    const admin = await Admin.findOne({ email });
+    // Find admin by username (using your existing model structure)
+    const admin = await Admin.findOne({ username: username.trim() });
     if (!admin) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
+      return res.status(401).json({ 
+        success: false,
+        msg: 'Invalid username or password' 
+      });
     }
 
+    // Compare password
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
+      return res.status(401).json({ 
+        success: false,
+        msg: 'Invalid username or password' 
+      });
     }
 
+    // Create session
     req.session.adminId = admin._id;
     req.session.isAdmin = true;
     
-    res.json({ 
-      msg: 'Admin logged in successfully',
-      admin: {
-        id: admin._id,
-        email: admin.email
+    // Save session explicitly to ensure it's stored
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ 
+          success: false,
+          msg: 'Error creating session' 
+        });
       }
+      
+      res.json({ 
+        success: true,
+        msg: 'Admin logged in successfully',
+        admin: {
+          id: admin._id,
+          username: admin.username
+        }
+      });
     });
+    
   } catch (err) {
     console.error('Admin login error:', err);
-    res.status(500).json({ msg: 'Server error during login' });
+    res.status(500).json({ 
+      success: false,
+      msg: 'Server error during login',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 
 // Admin logout
 exports.adminLogout = (req, res) => {
   try {
+    if (!req.session) {
+      return res.status(400).json({ 
+        success: false,
+        msg: 'No active session found' 
+      });
+    }
+
     req.session.destroy((err) => {
       if (err) {
         console.error('Session destroy error:', err);
-        return res.status(500).json({ msg: 'Error logging out' });
+        return res.status(500).json({ 
+          success: false,
+          msg: 'Error logging out' 
+        });
       }
+      
       res.clearCookie('connect.sid');
-      res.json({ msg: 'Admin logged out successfully' });
+      res.json({ 
+        success: true,
+        msg: 'Admin logged out successfully' 
+      });
     });
   } catch (err) {
     console.error('Admin logout error:', err);
-    res.status(500).json({ msg: 'Server error during logout' });
+    res.status(500).json({ 
+      success: false,
+      msg: 'Server error during logout',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 
@@ -65,10 +113,17 @@ exports.getAllOrders = async (req, res) => {
       .populate('items.medicineId', 'name brand')
       .sort({ createdAt: -1 });
     
-    res.json(orders);
+    res.json({
+      success: true,
+      orders
+    });
   } catch (err) {
     console.error('Get orders error:', err);
-    res.status(500).json({ msg: 'Error fetching orders' });
+    res.status(500).json({ 
+      success: false,
+      msg: 'Error fetching orders',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 
@@ -77,20 +132,39 @@ exports.getOrderDetails = async (req, res) => {
   try {
     const { orderId } = req.params;
     
+    // Validate ObjectId format
+    if (!orderId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ 
+        success: false,
+        msg: 'Invalid order ID format' 
+      });
+    }
+    
     const order = await Order.findById(orderId)
       .populate('userId', 'name email phone address')
       .populate('items.medicineId', 'name brand dosage');
     
     if (!order) {
-      return res.status(404).json({ msg: 'Order not found' });
+      return res.status(404).json({ 
+        success: false,
+        msg: 'Order not found' 
+      });
     }
 
     const medical = await UserMedical.findOne({ userId: order.userId._id });
     
-    res.json({ order, medical });
+    res.json({ 
+      success: true,
+      order, 
+      medical 
+    });
   } catch (err) {
     console.error('Get order details error:', err);
-    res.status(500).json({ msg: 'Error fetching order details' });
+    res.status(500).json({ 
+      success: false,
+      msg: 'Error fetching order details',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 
@@ -99,6 +173,14 @@ exports.approveOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
     
+    // Validate ObjectId format
+    if (!orderId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ 
+        success: false,
+        msg: 'Invalid order ID format' 
+      });
+    }
+    
     const order = await Order.findByIdAndUpdate(
       orderId, 
       { status: 'Ready to Checkout' },
@@ -106,16 +188,24 @@ exports.approveOrder = async (req, res) => {
     );
     
     if (!order) {
-      return res.status(404).json({ msg: 'Order not found' });
+      return res.status(404).json({ 
+        success: false,
+        msg: 'Order not found' 
+      });
     }
     
     res.json({ 
+      success: true,
       msg: 'Order approved successfully',
       order 
     });
   } catch (err) {
     console.error('Approve order error:', err);
-    res.status(500).json({ msg: 'Error approving order' });
+    res.status(500).json({ 
+      success: false,
+      msg: 'Error approving order',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 
@@ -123,7 +213,15 @@ exports.approveOrder = async (req, res) => {
 exports.declineOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const { reason } = req.body; // Optional decline reason
+    const { reason } = req.body;
+    
+    // Validate ObjectId format
+    if (!orderId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ 
+        success: false,
+        msg: 'Invalid order ID format' 
+      });
+    }
     
     const order = await Order.findByIdAndUpdate(
       orderId, 
@@ -135,26 +233,37 @@ exports.declineOrder = async (req, res) => {
     );
     
     if (!order) {
-      return res.status(404).json({ msg: 'Order not found' });
+      return res.status(404).json({ 
+        success: false,
+        msg: 'Order not found' 
+      });
     }
     
     res.json({ 
+      success: true,
       msg: 'Order declined successfully',
       order 
     });
   } catch (err) {
     console.error('Decline order error:', err);
-    res.status(500).json({ msg: 'Error declining order' });
+    res.status(500).json({ 
+      success: false,
+      msg: 'Error declining order',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 
 // Generate reports
 exports.generateReport = async (req, res) => {
   try {
-    const { type } = req.query; // pdf or excel
+    const { type } = req.query;
     
     if (!['pdf', 'excel'].includes(type)) {
-      return res.status(400).json({ msg: 'Invalid report type. Use "pdf" or "excel"' });
+      return res.status(400).json({ 
+        success: false,
+        msg: 'Invalid report type. Use "pdf" or "excel"' 
+      });
     }
 
     const orders = await Order.find().populate('items.medicineId', 'name');
@@ -215,7 +324,11 @@ exports.generateReport = async (req, res) => {
     }
   } catch (err) {
     console.error('Generate report error:', err);
-    res.status(500).json({ msg: 'Error generating report' });
+    res.status(500).json({ 
+      success: false,
+      msg: 'Error generating report',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
 
@@ -229,20 +342,27 @@ exports.getDashboardStats = async (req, res) => {
     const totalRevenue = paidOrders.reduce((acc, order) => acc + (order.total || 0), 0);
     
     res.json({
-      totalOrders,
-      totalMedicines,
-      pendingOrders,
-      totalRevenue: totalRevenue.toFixed(2),
-      recentOrders: await Order.find()
-        .populate('userId', 'name')
-        .sort({ createdAt: -1 })
-        .limit(5),
-      lowStockMedicines: await Medicine.find({ stock: { $lte: 10 } })
-        .sort({ stock: 1 })
-        .limit(10)
+      success: true,
+      stats: {
+        totalOrders,
+        totalMedicines,
+        pendingOrders,
+        totalRevenue: totalRevenue.toFixed(2),
+        recentOrders: await Order.find()
+          .populate('userId', 'name')
+          .sort({ createdAt: -1 })
+          .limit(5),
+        lowStockMedicines: await Medicine.find({ stock: { $lte: 10 } })
+          .sort({ stock: 1 })
+          .limit(10)
+      }
     });
   } catch (err) {
     console.error('Dashboard stats error:', err);
-    res.status(500).json({ msg: 'Error fetching dashboard stats' });
+    res.status(500).json({ 
+      success: false,
+      msg: 'Error fetching dashboard stats',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
 };
