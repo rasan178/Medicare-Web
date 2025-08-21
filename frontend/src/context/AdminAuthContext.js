@@ -1,20 +1,42 @@
-const React = require('react');
-const { createContext, useState, useEffect } = require('react');
-const api = require('../utils/api');
+import React, { createContext, useState, useEffect } from 'react';
+// import api from '../utils/api';
 
-const AdminAuthContext = createContext();
+export const AdminAuthContext = createContext();
 
-function AdminAuthContextProvider(props) {
+export function AdminAuthContextProvider({ children }) {
   const [admin, setAdmin] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check admin session
+    // Mock check admin session
+    setTimeout(() => {
+      setLoading(false);
+    }, 500);
   }, []);
 
-  const login = (data) => api.post('/admin/login', data).then(() => window.location.reload());
-  const logout = () => api.post('/admin/logout').then(() => window.location.reload());
+  const login = async (data) => {
+    try {
+      console.log('Admin login attempt:', data);
+      // await api.post('/admin/login', data);
+      // window.location.reload();
+    } catch (error) {
+      console.error('Admin login error:', error);
+    }
+  };
 
-  return React.createElement(AdminAuthContext.Provider, { value: { admin, login, logout } }, props.children);
+  const logout = async () => {
+    try {
+      // await api.post('/admin/logout');
+      setAdmin(null);
+      // window.location.reload();
+    } catch (error) {
+      console.error('Admin logout error:', error);
+    }
+  };
+
+  return (
+    <AdminAuthContext.Provider value={{ admin, login, logout, loading }}>
+      {children}
+    </AdminAuthContext.Provider>
+  );
 }
-
-module.exports = { AdminAuthContext, AdminAuthContextProvider }; 

@@ -1,16 +1,22 @@
-const React = require('react');
-const Navbar = require('../components/Navbar');
-const Footer = require('../components/Footer');
-const { Link } = require('react-router-dom');
+import React from 'react';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
+import { Link } from 'react-router-dom';
 
-module.exports = function Home() {
-  return React.createElement('div', null,
-    React.createElement(Navbar),
-    React.createElement('section', { className: 'hero bg-blue-200 p-8' },
-      React.createElement('h1', null, 'Welcome to Pharmacy'),
-      React.createElement('p', null, 'Featured Medicines'),
-      React.createElement(Link, { to: '/store', className: 'bg-blue-500 p-2' }, 'Shop Now')
-    ),
-    React.createElement(Footer)
+function Home() {
+  return (
+    <div>
+      <Navbar />
+      <section className="hero bg-blue-200 p-8">
+        <h1 className="text-4xl font-bold mb-4">Welcome to Pharmacy</h1>
+        <p className="text-lg mb-4">Featured Medicines</p>
+        <Link to="/store" className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+          Shop Now
+        </Link>
+      </section>
+      <Footer />
+    </div>
   );
-}; 
+}
+
+export default Home;

@@ -1,21 +1,55 @@
-const React = require('react');
-const { createContext, useState, useEffect } = require('react');
-const api = require('../utils/api');
+import React, { createContext, useState, useEffect } from 'react';
+import api from '../utils/api';
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
-function AuthContextProvider(props) {
+export function AuthContextProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/auth/profile').then(res => setUser(res.data.user)).catch(() => {});
+    // Mock API call - replace with actual API
+    setTimeout(() => {
+      // api.get('/auth/profile').then(res => setUser(res.data.user)).catch(() => {});
+      setLoading(false);
+    }, 1000);
   }, []);
 
-  const login = (data) => api.post('/auth/login', data).then(() => window.location.reload());
-  const register = (data) => api.post('/auth/register', data).then(() => window.location.reload());
-  const logout = () => api.post('/auth/logout').then(() => window.location.reload());
+  const login = async (data) => {
+    try {
+      // Mock login - replace with actual API call
+      // await api.post('/auth/login', data);
+      console.log('Login attempt:', data);
+      // window.location.reload();
+    } catch (error) {
+      console.error('Login error:', error);
+    }
+  };
 
-  return React.createElement(AuthContext.Provider, { value: { user, login, register, logout } }, props.children);
+  const register = async (data) => {
+    try {
+      // Mock register - replace with actual API call
+      // await api.post('/auth/register', data);
+      console.log('Register attempt:', data);
+      // window.location.reload();
+    } catch (error) {
+      console.error('Register error:', error);
+    }
+  };
+
+  const logout = async () => {
+    try {
+      // await api.post('/auth/logout');
+      setUser(null);
+      // window.location.reload();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
-
-module.exports = { AuthContext, AuthContextProvider }; 
