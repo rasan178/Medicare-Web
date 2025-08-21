@@ -5,6 +5,7 @@ import { AuthContextProvider } from './context/AuthContext';
 import { CartContextProvider } from './context/CartContext';
 import { AdminAuthContextProvider } from './context/AdminAuthContext';
 
+import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Store from './pages/Store';
 import About from './pages/About';
@@ -26,22 +27,27 @@ function App() {
       <AuthContextProvider>
         <CartContextProvider>
           <AdminAuthContextProvider>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/store" element={<Store />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/profile" element={<ProfileDashboard />} />
-              <Route path="/profile/medical" element={<MedicalInfo />} />
-              <Route path="/profile/orders" element={<Orders />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin/dashboard" element={<Dashboard />} />
-              <Route path="/admin/products" element={<Products />} />
-              <Route path="/admin/orders" element={<AdminOrders />} />
-              <Route path="/admin/reports" element={<Reports />} />
-            </Routes>
+            <div className="min-h-screen bg-gray-50">
+              <Navbar />
+              <main className="pt-16">
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/store" element={<Store />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/profile" element={<ProfileDashboard />} />
+                  <Route path="/profile/medical" element={<MedicalInfo />} />
+                  <Route path="/profile/orders" element={<Orders />} />
+                  <Route path="/cart" element={<Cart />} />
+                  <Route path="/admin/login" element={<AdminLogin />} />
+                  <Route path="/admin/dashboard" element={<Dashboard />} />
+                  <Route path="/admin/products" element={<Products />} />
+                  <Route path="/admin/orders" element={<AdminOrders />} />
+                  <Route path="/admin/reports" element={<Reports />} />
+                </Routes>
+              </main>
+            </div>
           </AdminAuthContextProvider>
         </CartContextProvider>
       </AuthContextProvider>

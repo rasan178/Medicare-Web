@@ -47,13 +47,14 @@ export const AuthContextProvider = ({ children }) => {
       if (response.ok) {
         setUser(data.user);
         navigate('/profile');
-        alert('Registration successful!');
+        // Removed alert - let individual components handle notifications
       } else {
-        alert(data.msg || 'Registration failed');
+        throw new Error(data.msg || 'Registration failed');
       }
     } catch (error) {
       console.error('Registration error:', error);
-      alert('Registration failed. Please try again.');
+      // Removed alert - let individual components handle error notifications
+      throw error; // Re-throw so components can handle the error
     }
   };
 
@@ -73,13 +74,14 @@ export const AuthContextProvider = ({ children }) => {
       if (response.ok) {
         setUser(data.user);
         navigate('/profile');
-        alert('Login successful!');
+        // Removed alert - let individual components handle notifications
       } else {
-        alert(data.msg || 'Login failed');
+        throw new Error(data.msg || 'Login failed');
       }
     } catch (error) {
       console.error('Login error:', error);
-      alert('Login failed. Please try again.');
+      // Removed alert - let individual components handle error notifications
+      throw error; // Re-throw so components can handle the error
     }
   };
 
@@ -92,9 +94,10 @@ export const AuthContextProvider = ({ children }) => {
       
       setUser(null);
       navigate('/');
-      alert('Logged out successfully');
+      // Removed alert - let individual components handle notifications
     } catch (error) {
       console.error('Logout error:', error);
+      throw error; // Re-throw so components can handle the error
     }
   };
 
