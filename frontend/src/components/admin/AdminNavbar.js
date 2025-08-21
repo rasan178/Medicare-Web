@@ -1,9 +1,14 @@
-const React = require('react');
-const { Link } = require('react-router-dom');
+// frontend/src/components/admin/AdminNavbar.js
+import React from 'react';
+import { Link } from 'react-router-dom';
 
-module.exports = function AdminNavbar() {
-  return React.createElement('nav', { className: 'bg-blue-700 p-4 text-white' },
-    React.createElement('h1', null, 'Admin Panel'),
-    React.createElement(Link, { to: '/admin/logout' }, 'Logout')
+function AdminNavbar() {
+  return (
+    <nav className="bg-blue-700 p-4 text-white">
+      <h1>Admin Panel</h1>
+      <Link to="/admin/logout">Logout</Link>
+    </nav>
   );
-}; 
+}
+
+export default AdminNavbar;
