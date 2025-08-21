@@ -1,14 +1,77 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/admin/Sidebar';
 import AdminNavbar from '../../components/admin/AdminNavbar';
 
 function Dashboard() {
-  const stats = {
-    totalOrders: 156,
-    totalProducts: 89,
-    totalRevenue: 12450.75,
-    pendingOrders: 23
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    totalMedicines: 0,
+    totalRevenue: '0.00',
+    pendingOrders: 0,
+    recentOrders: [],
+    lowStockMedicines: []
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/admin/dashboard/stats', {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.stats) {
+        setStats(data.stats);
+      } else {
+        throw new Error(data.msg || 'Failed to fetch dashboard stats');
+      }
+    } catch (err) {
+      console.error('Dashboard stats fetch error:', err);
+      setError(err.message);
+      // Keep default values on error
+      setStats({
+        totalOrders: 0,
+        totalMedicines: 0,
+        totalRevenue: '0.00',
+        pendingOrders: 0,
+        recentOrders: [],
+        lowStockMedicines: []
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-gray-100">
+        <Sidebar />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <AdminNavbar />
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-200 p-6">
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -17,6 +80,18 @@ function Dashboard() {
         <AdminNavbar />
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-200 p-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
+          
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+              <p>Error loading dashboard data: {error}</p>
+              <button 
+                onClick={fetchDashboardStats}
+                className="mt-2 text-sm underline hover:no-underline"
+              >
+                Try again
+              </button>
+            </div>
+          )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <div className="bg-white p-6 rounded-lg shadow">
@@ -42,7 +117,7 @@ function Dashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Products</p>
-                  <p className="text-2xl font-semibold text-gray-900">{stats.totalProducts}</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stats.totalMedicines}</p>
                 </div>
               </div>
             </div>
@@ -56,7 +131,7 @@ function Dashboard() {
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                  <p className="text-2xl font-semibold text-gray-900">${stats.totalRevenue.toFixed(2)}</p>
+                  <p className="text-2xl font-semibold text-gray-900">${stats.totalRevenue}</p>
                 </div>
               </div>
             </div>
@@ -80,37 +155,59 @@ function Dashboard() {
             <div className="bg-white p-6 rounded-lg shadow">
               <h3 className="text-lg font-semibold mb-4">Recent Orders</h3>
               <div className="space-y-3">
-                {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="flex justify-between items-center border-b pb-2">
-                    <div>
-                      <p className="font-medium">Order #00{i}</p>
-                      <p className="text-sm text-gray-500">Customer {i}</p>
+                {stats.recentOrders && stats.recentOrders.length > 0 ? (
+                  stats.recentOrders.map((order, index) => (
+                    <div key={order._id || index} className="flex justify-between items-center border-b pb-2">
+                      <div>
+                        <p className="font-medium">Order #{order._id ? order._id.slice(-6) : 'N/A'}</p>
+                        <p className="text-sm text-gray-500">{order.userId?.name || 'Unknown Customer'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium">${order.total?.toFixed(2) || '0.00'}</p>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          order.status === 'Paid' 
+                            ? 'bg-green-100 text-green-800' 
+                            : order.status === 'Declined'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {order.status || 'Pending'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-medium">${(Math.random() * 100 + 20).toFixed(2)}</p>
-                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                        Pending
-                      </span>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 py-4">
+                    No recent orders found
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow">
               <h3 className="text-lg font-semibold mb-4">Low Stock Alert</h3>
               <div className="space-y-3">
-                {['Paracetamol', 'Amoxicillin', 'Vitamin C', 'Aspirin'].map((product, i) => (
-                  <div key={i} className="flex justify-between items-center border-b pb-2">
-                    <div>
-                      <p className="font-medium">{product}</p>
-                      <p className="text-sm text-gray-500">Medicine</p>
+                {stats.lowStockMedicines && stats.lowStockMedicines.length > 0 ? (
+                  stats.lowStockMedicines.map((medicine, index) => (
+                    <div key={medicine._id || index} className="flex justify-between items-center border-b pb-2">
+                      <div>
+                        <p className="font-medium">{medicine.name}</p>
+                        <p className="text-sm text-gray-500">{medicine.brand}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-medium ${
+                          medicine.stock <= 5 ? 'text-red-600' : 'text-orange-600'
+                        }`}>
+                          {medicine.stock} left
+                        </p>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-red-600 font-medium">{Math.floor(Math.random() * 10 + 1)} left</p>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 py-4">
+                    All products are well stocked
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>
