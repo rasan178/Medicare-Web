@@ -1,42 +1,85 @@
+// frontend/src/context/AdminAuthContext.js
 import React, { createContext, useState, useEffect } from 'react';
-// import api from '../utils/api';
+import { useNavigate } from 'react-router-dom';
 
 export const AdminAuthContext = createContext();
 
-export function AdminAuthContextProvider({ children }) {
+export const AdminAuthContextProvider = ({ children }) => {
   const [admin, setAdmin] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Mock check admin session
-    setTimeout(() => {
+    // Check if admin is logged in
+    const checkAdminAuth = () => {
+      const adminData = localStorage.getItem('admin');
+      if (adminData) {
+        try {
+          setAdmin(JSON.parse(adminData));
+        } catch (error) {
+          console.error('Invalid admin data in localStorage');
+          localStorage.removeItem('admin');
+        }
+      }
       setLoading(false);
-    }, 500);
+    };
+
+    checkAdminAuth();
   }, []);
 
-  const login = async (data) => {
+  const login = async (credentials) => {
     try {
-      console.log('Admin login attempt:', data);
-      // await api.post('/admin/login', data);
-      // window.location.reload();
+      const response = await fetch('http://localhost:5000/api/admin/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setAdmin(data.admin);
+        localStorage.setItem('admin', JSON.stringify(data.admin));
+        navigate('/admin/dashboard');
+        alert('Admin login successful!');
+      } else {
+        alert(data.msg || 'Admin login failed');
+      }
     } catch (error) {
       console.error('Admin login error:', error);
+      alert('Admin login failed. Please try again.');
     }
   };
 
   const logout = async () => {
     try {
-      // await api.post('/admin/logout');
+      await fetch('http://localhost:5000/api/admin/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
       setAdmin(null);
-      // window.location.reload();
+      localStorage.removeItem('admin');
+      navigate('/admin/login');
+      alert('Admin logged out successfully');
     } catch (error) {
       console.error('Admin logout error:', error);
     }
   };
 
+  const value = {
+    admin,
+    loading,
+    login,
+    logout,
+  };
+
   return (
-    <AdminAuthContext.Provider value={{ admin, login, logout, loading }}>
+    <AdminAuthContext.Provider value={value}>
       {children}
     </AdminAuthContext.Provider>
   );
-}
+};

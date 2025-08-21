@@ -1,46 +1,38 @@
 // frontend/src/components/admin/Sidebar.js
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 function Sidebar() {
+  const location = useLocation();
+
+  const menuItems = [
+    { path: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
+    { path: '/admin/orders', label: 'Orders', icon: '📦' },
+    { path: '/admin/products', label: 'Products', icon: '💊' },
+    { path: '/admin/reports', label: 'Reports', icon: '📈' },
+  ];
+
   return (
-    <aside className="bg-gray-800 text-white p-4 min-h-screen w-64">
-      <h2 className="text-xl font-bold mb-6">Admin Menu</h2>
-      <ul className="space-y-2">
-        <li>
-          <Link 
-            to="/admin/dashboard" 
-            className="block p-2 rounded hover:bg-gray-700 transition-colors"
+    <div className="bg-gray-800 text-white w-64 min-h-screen">
+      <div className="p-4">
+        <h2 className="text-xl font-bold">Admin Panel</h2>
+      </div>
+      
+      <nav className="mt-8">
+        {menuItems.map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={`flex items-center px-6 py-3 text-gray-300 hover:bg-gray-700 hover:text-white transition-colors ${
+              location.pathname === item.path ? 'bg-gray-700 text-white' : ''
+            }`}
           >
-            Dashboard
+            <span className="mr-3 text-lg">{item.icon}</span>
+            {item.label}
           </Link>
-        </li>
-        <li>
-          <Link 
-            to="/admin/products" 
-            className="block p-2 rounded hover:bg-gray-700 transition-colors"
-          >
-            Products
-          </Link>
-        </li>
-        <li>
-          <Link 
-            to="/admin/orders" 
-            className="block p-2 rounded hover:bg-gray-700 transition-colors"
-          >
-            Orders
-          </Link>
-        </li>
-        <li>
-          <Link 
-            to="/admin/reports" 
-            className="block p-2 rounded hover:bg-gray-700 transition-colors"
-          >
-            Reports
-          </Link>
-        </li>
-      </ul>
-    </aside>
+        ))}
+      </nav>
+    </div>
   );
 }
 

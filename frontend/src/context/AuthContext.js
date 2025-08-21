@@ -1,55 +1,114 @@
+// frontend/src/context/AuthContext.js
 import React, { createContext, useState, useEffect } from 'react';
-import api from '../utils/api';
+import { useNavigate } from 'react-router-dom';
 
 export const AuthContext = createContext();
 
-export function AuthContextProvider({ children }) {
+export const AuthContextProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Mock API call - replace with actual API
-    setTimeout(() => {
-      // api.get('/auth/profile').then(res => setUser(res.data.user)).catch(() => {});
-      setLoading(false);
-    }, 1000);
+    // Check if user is logged in on app start
+    checkAuth();
   }, []);
 
-  const login = async (data) => {
+  const checkAuth = async () => {
     try {
-      // Mock login - replace with actual API call
-      // await api.post('/auth/login', data);
-      console.log('Login attempt:', data);
-      // window.location.reload();
+      const response = await fetch('http://localhost:5000/api/auth/check', {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      
+      if (data.authenticated) {
+        setUser(data.user);
+      }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Auth check failed:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const register = async (data) => {
+  const register = async (userData) => {
     try {
-      // Mock register - replace with actual API call
-      // await api.post('/auth/register', data);
-      console.log('Register attempt:', data);
-      // window.location.reload();
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(userData),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setUser(data.user);
+        navigate('/profile');
+        alert('Registration successful!');
+      } else {
+        alert(data.msg || 'Registration failed');
+      }
     } catch (error) {
-      console.error('Register error:', error);
+      console.error('Registration error:', error);
+      alert('Registration failed. Please try again.');
+    }
+  };
+
+  const login = async (credentials) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setUser(data.user);
+        navigate('/profile');
+        alert('Login successful!');
+      } else {
+        alert(data.msg || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Login failed. Please try again.');
     }
   };
 
   const logout = async () => {
     try {
-      // await api.post('/auth/logout');
+      await fetch('http://localhost:5000/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
       setUser(null);
-      // window.location.reload();
+      navigate('/');
+      alert('Logged out successfully');
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
 
+  const value = {
+    user,
+    loading,
+    register,
+    login,
+    logout,
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
-}
+};
