@@ -1,9 +1,9 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 
 import { AuthContextProvider } from './context/AuthContext';
 import { CartContextProvider } from './context/CartContext';
-import { AdminAuthContextProvider } from './context/AdminAuthContext';
+import { AdminAuthContextProvider, useAdminAuth } from './context/AdminAuthContext';
 
 import Navbar from './components/Navbar';
 import AdminNavbar from './components/admin/AdminNavbar';
@@ -21,6 +21,27 @@ import Dashboard from './pages/admin/Dashboard';
 import Products from './pages/admin/Products';
 import AdminOrders from './pages/admin/Orders';
 import Reports from './pages/admin/Reports';
+
+// Protected Route Component for Admin Routes
+function ProtectedAdminRoute({ children }) {
+  const { admin, loading } = useAdminAuth();
+  
+  // Show loading state while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  
+  // Redirect to admin login if not authenticated
+  if (!admin) {
+    return <Navigate to="/admin/login" replace />;
+  }
+  
+  return children;
+}
 
 // Component to conditionally render navbar based on route
 function ConditionalNavbar() {
@@ -44,6 +65,7 @@ function AppContent() {
       <ConditionalNavbar />
       <main className={isAdminRoute ? "pt-0" : "pt-16"}>
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Home />} />
           <Route path="/store" element={<Store />} />
           <Route path="/about" element={<About />} />
@@ -53,11 +75,53 @@ function AppContent() {
           <Route path="/profile/medical" element={<MedicalInfo />} />
           <Route path="/profile/orders" element={<Orders />} />
           <Route path="/cart" element={<Cart />} />
+          
+          {/* Admin Login Route (public) */}
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/dashboard" element={<Dashboard />} />
-          <Route path="/admin/products" element={<Products />} />
-          <Route path="/admin/orders" element={<AdminOrders />} />
-          <Route path="/admin/reports" element={<Reports />} />
+          
+          {/* Protected Admin Routes */}
+          <Route 
+            path="/admin/dashboard" 
+            element={
+              <ProtectedAdminRoute>
+                <Dashboard />
+              </ProtectedAdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/products" 
+            element={
+              <ProtectedAdminRoute>
+                <Products />
+              </ProtectedAdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/orders" 
+            element={
+              <ProtectedAdminRoute>
+                <AdminOrders />
+              </ProtectedAdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/reports" 
+            element={
+              <ProtectedAdminRoute>
+                <Reports />
+              </ProtectedAdminRoute>
+            } 
+          />
+          
+          {/* Catch-all route for admin paths - redirect to dashboard if authenticated, login if not */}
+          <Route 
+            path="/admin/*" 
+            element={
+              <ProtectedAdminRoute>
+                <Navigate to="/admin/dashboard" replace />
+              </ProtectedAdminRoute>
+            } 
+          />
         </Routes>
       </main>
     </div>

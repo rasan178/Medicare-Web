@@ -1,5 +1,5 @@
 // frontend/src/context/AdminAuthContext.js
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 export const AdminAuthContext = createContext();
@@ -75,6 +75,9 @@ export const AdminAuthContextProvider = ({ children }) => {
     loading,
     login,
     logout,
+    // Add these properties for compatibility with the protected route
+    isAdminAuthenticated: !!admin,
+    isLoading: loading,
   };
 
   return (
@@ -82,4 +85,15 @@ export const AdminAuthContextProvider = ({ children }) => {
       {children}
     </AdminAuthContext.Provider>
   );
+};
+
+// Custom hook to use admin auth context
+export const useAdminAuth = () => {
+  const context = useContext(AdminAuthContext);
+  
+  if (!context) {
+    throw new Error('useAdminAuth must be used within AdminAuthContextProvider');
+  }
+  
+  return context;
 };
