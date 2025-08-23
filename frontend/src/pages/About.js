@@ -256,7 +256,7 @@ function About() {
       </section>
 
       {/* Contact Us Section */}
-      <section className="py-20 bg-gray-900 text-white">
+      <section className="py-20 bg-white text-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Contact Us</h2>
@@ -291,13 +291,7 @@ function About() {
               <p className="text-blue-400 font-semibold">123 Medical Ave, Health City</p>
             </div>
           </div>
-          
-          <div className="mt-16 text-center">
-            <div className="bg-blue-600 inline-block px-8 py-4 rounded-2xl hover:bg-blue-500 transform hover:scale-105 transition-all duration-300 cursor-pointer shadow-lg">
-              <p className="text-lg font-semibold">Ready to get started?</p>
-              <p className="text-blue-200 text-sm">Contact us today for personalized healthcare solutions</p>
-            </div>
-          </div>
+
         </div>
       </section>
 
