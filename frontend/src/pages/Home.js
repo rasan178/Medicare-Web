@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Link } from 'react-router-dom';
@@ -21,7 +21,9 @@ import {
   Plus,
   X,
   Send,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 function Home() {
@@ -42,6 +44,14 @@ function Home() {
   });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+
+  // Carousel states
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const carouselRef = useRef(null);
+  const startX = useRef(null);
+  const currentX = useRef(null);
+  const isDragging = useRef(false);
 
   // Get the base API URL
   const getBaseUrl = () => {
@@ -107,8 +117,7 @@ function Home() {
       console.log('Testimonials data:', data);
       
       if (data.success && data.testimonials) {
-        // Limit to 3 testimonials for display
-        setTestimonials(data.testimonials.slice(0, 3));
+        setTestimonials(data.testimonials);
       } else {
         console.log('No testimonials found or invalid response structure');
         setTestimonials([]);
@@ -120,6 +129,89 @@ function Home() {
     } finally {
       setTestimonialsLoading(false);
     }
+  };
+
+  // Carousel functions
+  const nextSlide = () => {
+    if (isAnimating || testimonials.length === 0) return;
+    setIsAnimating(true);
+    setCurrentIndex((prev) => (prev + 1) % testimonials.length);
+    setTimeout(() => setIsAnimating(false), 300);
+  };
+
+  const prevSlide = () => {
+    if (isAnimating || testimonials.length === 0) return;
+    setIsAnimating(true);
+    setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
+    setTimeout(() => setIsAnimating(false), 300);
+  };
+
+  const goToSlide = (index) => {
+    if (isAnimating || index === currentIndex) return;
+    setIsAnimating(true);
+    setCurrentIndex(index);
+    setTimeout(() => setIsAnimating(false), 300);
+  };
+
+  // Touch/Mouse event handlers
+  const handleStart = (clientX) => {
+    startX.current = clientX;
+    currentX.current = clientX;
+    isDragging.current = true;
+  };
+
+  const handleMove = (clientX) => {
+    if (!isDragging.current || !startX.current) return;
+    currentX.current = clientX;
+  };
+
+  const handleEnd = () => {
+    if (!isDragging.current || !startX.current || !currentX.current) {
+      isDragging.current = false;
+      return;
+    }
+
+    const deltaX = currentX.current - startX.current;
+    const threshold = 50; // minimum distance for swipe
+
+    if (Math.abs(deltaX) > threshold) {
+      if (deltaX > 0) {
+        prevSlide(); // swipe right - go to previous
+      } else {
+        nextSlide(); // swipe left - go to next
+      }
+    }
+
+    isDragging.current = false;
+    startX.current = null;
+    currentX.current = null;
+  };
+
+  // Mouse events
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    handleStart(e.clientX);
+  };
+
+  const handleMouseMove = (e) => {
+    handleMove(e.clientX);
+  };
+
+  const handleMouseUp = () => {
+    handleEnd();
+  };
+
+  // Touch events
+  const handleTouchStart = (e) => {
+    handleStart(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e) => {
+    handleMove(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    handleEnd();
   };
 
   const handleStarClick = (rating) => {
@@ -481,7 +573,7 @@ function Home() {
         </div>
       </section>
 
-      {/* Testimonials Section with Backend Integration */}
+      {/* Testimonials Carousel Section */}
       <section className="py-20 bg-gray-50 relative">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -496,33 +588,93 @@ function Home() {
               <p className="text-gray-600">Loading testimonials...</p>
             </div>
           ) : testimonials.length > 0 ? (
-            <div className="grid md:grid-cols-3 gap-8">
-              {testimonials.map((testimonial) => (
-                <div key={testimonial._id} className="bg-white rounded-2xl p-8 shadow-lg">
-                  <div className="flex items-center mb-4">
-                    {[...Array(5)].map((_, i) => (
-                      <Star 
-                        key={i} 
-                        className={`w-5 h-5 ${
-                          i < testimonial.rating 
-                            ? 'text-yellow-400 fill-current' 
-                            : 'text-gray-300'
-                        }`} 
-                      />
-                    ))}
-                  </div>
-                  <p className="text-gray-600 mb-6 leading-relaxed">"{testimonial.comment}"</p>
-                  <div>
-                    <div className="font-bold text-gray-900">{testimonial.fullName}</div>
-                    <div className="text-blue-600">
-                      {testimonial.profession || 'Verified Customer'}
+            <div className="relative">
+              {/* Carousel Container */}
+              <div
+                ref={carouselRef}
+                className="relative overflow-hidden rounded-3xl select-none cursor-grab active:cursor-grabbing"
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+              >
+                <div
+                  className="flex transition-transform duration-300 ease-in-out"
+                  style={{
+                    transform: `translateX(-${currentIndex * 100}%)`,
+                  }}
+                >
+                  {testimonials.map((testimonial) => (
+                    <div key={testimonial._id} className="w-full flex-shrink-0 px-4">
+                      <div className="bg-white rounded-2xl p-8 shadow-lg mx-auto max-w-2xl">
+                        <div className="flex items-center mb-6">
+                          {[...Array(5)].map((_, i) => (
+                            <Star 
+                              key={i} 
+                              className={`w-6 h-6 ${
+                                i < testimonial.rating 
+                                  ? 'text-yellow-400 fill-current' 
+                                  : 'text-gray-300'
+                              }`} 
+                            />
+                          ))}
+                        </div>
+                        <p className="text-gray-600 mb-8 leading-relaxed text-lg">"{testimonial.comment}"</p>
+                        <div className="text-center">
+                          <div className="font-bold text-gray-900 text-xl">{testimonial.fullName}</div>
+                          <div className="text-blue-600 text-lg">
+                            {testimonial.profession || 'Verified Customer'}
+                          </div>
+                          <div className="text-sm text-gray-400 mt-2">
+                            {formatDate(testimonial.createdAt)}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-400 mt-1">
-                      {formatDate(testimonial.createdAt)}
-                    </div>
-                  </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              {/* Navigation Arrows */}
+              {testimonials.length > 1 && (
+                <>
+                  <button
+                    onClick={prevSlide}
+                    disabled={isAnimating}
+                    className="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-colors disabled:opacity-50 z-10"
+                  >
+                    <ChevronLeft className="w-6 h-6 text-gray-600" />
+                  </button>
+                  <button
+                    onClick={nextSlide}
+                    disabled={isAnimating}
+                    className="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-colors disabled:opacity-50 z-10"
+                  >
+                    <ChevronRight className="w-6 h-6 text-gray-600" />
+                  </button>
+                </>
+              )}
+
+              {/* Dots Indicator */}
+              {testimonials.length > 1 && (
+                <div className="flex justify-center mt-8 space-x-2">
+                  {testimonials.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => goToSlide(index)}
+                      disabled={isAnimating}
+                      className={`w-3 h-3 rounded-full transition-colors ${
+                        index === currentIndex
+                          ? 'bg-blue-600'
+                          : 'bg-gray-300 hover:bg-gray-400'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
             <div className="text-center py-12">
