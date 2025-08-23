@@ -53,7 +53,7 @@ function Navbar() {
               </svg>
             </div>
             <div className="flex flex-col">
-              <span className="text-lg font-semibold text-gray-900">MedCare</span>
+              <span className="text-lg font-semibold text-gray-900">MediCare</span>
               <span className="text-xs text-gray-500 -mt-1">Pharmacy</span>
             </div>
           </Link>

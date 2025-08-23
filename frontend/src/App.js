@@ -59,11 +59,12 @@ function ConditionalNavbar() {
 function AppContent() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isAdminLogin = location.pathname === '/admin/login';
   
   return (
     <div className="min-h-screen bg-gray-50">
       <ConditionalNavbar />
-      <main className={isAdminRoute ? "pt-0" : "pt-16"}>
+      <main className={isAdminRoute && !isAdminLogin ? "ml-72" : isAdminLogin ? "" : "pt-16"}>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<Home />} />
