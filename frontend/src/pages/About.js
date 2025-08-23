@@ -1,9 +1,52 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Shield, Heart, Truck, Clock, Award, Users, Phone, Mail, MapPin, Stethoscope, PillBottle, Activity } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 function About() {
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    totalMedicines: 0,
+    totalRevenue: '0.00'
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchAboutStats();
+  }, []);
+
+  const fetchAboutStats = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/medicines/public/stats', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.stats) {
+        setStats(data.stats);
+      }
+    } catch (err) {
+      console.error('About stats fetch error:', err);
+      // Keep default values on error
+      setStats({
+        totalOrders: 0,
+        totalMedicines: 0,
+        totalRevenue: '0.00'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const services = [
     {
       icon: <PillBottle className="h-8 w-8" />,
@@ -148,32 +191,72 @@ function About() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-20 bg-blue-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
-            <div className="group">
-              <div className="text-4xl md:text-5xl font-bold mb-2 group-hover:scale-110 transform transition-transform duration-300">50K+</div>
-              <div className="text-blue-200 uppercase tracking-wide text-sm font-medium">Happy Patients</div>
+      {/* Stats Section - Same as Home Page */}
+      <section className="py-20 bg-blue-600 text-white">
+        <div className="max-w-7xl mx-auto px-6">
+          {loading ? (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mx-auto mb-4"></div>
+              <p className="text-blue-100">Loading statistics...</p>
             </div>
-            <div className="group">
-              <div className="text-4xl md:text-5xl font-bold mb-2 group-hover:scale-110 transform transition-transform duration-300">15+</div>
-              <div className="text-blue-200 uppercase tracking-wide text-sm font-medium">Years Experience</div>
+          ) : (
+            <div className="grid grid-cols-5 gap-8 text-center">
+              <div className="group">
+                <div className="flex items-center justify-center mb-4">
+                  <Users className="w-12 h-12 text-blue-200 mb-2" />
+                </div>
+                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
+                  {stats.totalOrders.toLocaleString()}
+                </div>
+                <div className="text-blue-200 text-lg font-medium">Total Orders</div>
+              </div>
+              
+              <div className="group">
+                <div className="flex items-center justify-center mb-4">
+                  <PillBottle className="w-12 h-12 text-blue-200 mb-2" />
+                </div>
+                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
+                  {stats.totalMedicines.toLocaleString()}+
+                </div>
+                <div className="text-blue-200 text-lg font-medium">Medicines Available</div>
+              </div>
+              
+              <div className="group">
+                <div className="flex items-center justify-center mb-4">
+                  <Activity className="w-12 h-12 text-blue-200 mb-2" />
+                </div>
+                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
+                  24/7
+                </div>
+                <div className="text-blue-200 text-lg font-medium">Customer Support</div>
+              </div>
+              
+              <div className="group">
+                <div className="flex items-center justify-center mb-4">
+                  <Clock className="w-12 h-12 text-blue-200 mb-2" />
+                </div>
+                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
+                  15+
+                </div>
+                <div className="text-blue-200 text-lg font-medium">Years of Experience</div>
+              </div>
+              
+              <div className="group">
+                <div className="flex items-center justify-center mb-4">
+                  <MapPin className="w-12 h-12 text-blue-200 mb-2" />
+                </div>
+                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
+                  1
+                </div>
+                <div className="text-blue-200 text-lg font-medium">Number of Outlets</div>
+              </div>
             </div>
-            <div className="group">
-              <div className="text-4xl md:text-5xl font-bold mb-2 group-hover:scale-110 transform transition-transform duration-300">24/7</div>
-              <div className="text-blue-200 uppercase tracking-wide text-sm font-medium">Support Available</div>
-            </div>
-            <div className="group">
-              <div className="text-4xl md:text-5xl font-bold mb-2 group-hover:scale-110 transform transition-transform duration-300">100%</div>
-              <div className="text-blue-200 uppercase tracking-wide text-sm font-medium">Satisfaction Rate</div>
-            </div>
-          </div>
+          )}
         </div>
       </section>
 
       {/* Contact Us Section */}
-      <section className="py-20 bg-gray-900 text-white">
+      <section className="py-20 bg-white text-black">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Contact Us</h2>
@@ -208,13 +291,7 @@ function About() {
               <p className="text-blue-400 font-semibold">123 Medical Ave, Health City</p>
             </div>
           </div>
-          
-          <div className="mt-16 text-center">
-            <div className="bg-blue-600 inline-block px-8 py-4 rounded-2xl hover:bg-blue-500 transform hover:scale-105 transition-all duration-300 cursor-pointer shadow-lg">
-              <p className="text-lg font-semibold">Ready to get started?</p>
-              <p className="text-blue-200 text-sm">Contact us today for personalized healthcare solutions</p>
-            </div>
-          </div>
+
         </div>
       </section>
 

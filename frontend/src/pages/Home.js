@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Link } from 'react-router-dom';
@@ -16,10 +16,219 @@ import {
   Mail,
   MapPin,
   Star,
-  CheckCircle
+  CheckCircle,
+  ShoppingBag,
+  Plus,
+  X,
+  Send,
+  AlertCircle
 } from 'lucide-react';
 
 function Home() {
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    totalMedicines: 0,
+    totalRevenue: '0.00'
+  });
+  const [testimonials, setTestimonials] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [testimonialsLoading, setTestimonialsLoading] = useState(true);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 0,
+    comment: '',
+    fullName: '',
+    profession: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  // Get the base API URL
+  const getBaseUrl = () => {
+    return process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  };
+
+  useEffect(() => {
+    fetchHomeStats();
+    fetchTestimonials();
+  }, []);
+
+  const fetchHomeStats = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${getBaseUrl()}/api/medicines/public/stats`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.stats) {
+        setStats(data.stats);
+      }
+    } catch (err) {
+      console.error('Home stats fetch error:', err);
+      // Keep default values on error
+      setStats({
+        totalOrders: 0,
+        totalMedicines: 0,
+        totalRevenue: '0.00'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTestimonials = async () => {
+    try {
+      setTestimonialsLoading(true);
+      console.log('Fetching testimonials from:', `${getBaseUrl()}/api/testimonials/public`);
+      
+      const response = await fetch(`${getBaseUrl()}/api/testimonials/public`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      console.log('Testimonials response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Testimonials data:', data);
+      
+      if (data.success && data.testimonials) {
+        // Limit to 3 testimonials for display
+        setTestimonials(data.testimonials.slice(0, 3));
+      } else {
+        console.log('No testimonials found or invalid response structure');
+        setTestimonials([]);
+      }
+    } catch (err) {
+      console.error('Testimonials fetch error:', err);
+      // Keep empty array on error
+      setTestimonials([]);
+    } finally {
+      setTestimonialsLoading(false);
+    }
+  };
+
+  const handleStarClick = (rating) => {
+    setReviewForm(prev => ({ ...prev, rating }));
+    setSubmitError(''); // Clear any previous errors
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setReviewForm(prev => ({ ...prev, [name]: value }));
+    setSubmitError(''); // Clear any previous errors
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    setSubmitError('');
+    
+    // Client-side validation
+    if (reviewForm.rating === 0) {
+      setSubmitError('Please select a rating');
+      return;
+    }
+    if (!reviewForm.comment.trim()) {
+      setSubmitError('Please enter a comment');
+      return;
+    }
+    if (!reviewForm.fullName.trim()) {
+      setSubmitError('Please enter your full name');
+      return;
+    }
+    if (reviewForm.comment.length > 1000) {
+      setSubmitError('Comment must be less than 1000 characters');
+      return;
+    }
+    if (reviewForm.fullName.length > 100) {
+      setSubmitError('Full name must be less than 100 characters');
+      return;
+    }
+
+    setSubmitting(true);
+    
+    try {
+      console.log('Submitting review to:', `${getBaseUrl()}/api/testimonials/`);
+      console.log('Review data:', reviewForm);
+      
+      const response = await fetch(`${getBaseUrl()}/api/testimonials/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: reviewForm.fullName.trim(),
+          profession: reviewForm.profession.trim(),
+          rating: reviewForm.rating,
+          comment: reviewForm.comment.trim()
+        })
+      });
+
+      console.log('Submit response status:', response.status);
+      
+      const data = await response.json();
+      console.log('Submit response data:', data);
+
+      if (response.ok && data.success) {
+        // Reset form and close modal
+        setReviewForm({
+          rating: 0,
+          comment: '',
+          fullName: '',
+          profession: ''
+        });
+        setShowReviewForm(false);
+        alert(data.message || 'Thank you for your review! It will be reviewed and published soon.');
+        
+        // Refresh testimonials to show updated list
+        fetchTestimonials();
+      } else {
+        // Handle server errors
+        const errorMessage = data.message || data.error || 'Error submitting review. Please try again.';
+        setSubmitError(errorMessage);
+        console.error('Server error:', data);
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      setSubmitError('Network error. Please check your connection and try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const closeModal = () => {
+    setShowReviewForm(false);
+    setSubmitError('');
+    setReviewForm({
+      rating: 0,
+      comment: '',
+      fullName: '',
+      profession: ''
+    });
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -148,24 +357,57 @@ function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* Updated Stats Section with Real Data */}
       <section className="py-20 bg-blue-600 text-white">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-            {[
-              { number: "50K+", label: "Happy Customers" },
-              { number: "1000+", label: "Medicines Available" },
-              { number: "24/7", label: "Customer Support" },
-              { number: "99.9%", label: "Uptime Guarantee" }
-            ].map((stat, index) => (
-              <div key={index} className="group">
-                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
-                  {stat.number}
+          {loading ? (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mx-auto mb-4"></div>
+              <p className="text-blue-100">Loading statistics...</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+              <div className="group">
+                <div className="flex items-center justify-center mb-4">
+                  <ShoppingBag className="w-12 h-12 text-blue-200 mb-2" />
                 </div>
-                <div className="text-blue-200 text-lg font-medium">{stat.label}</div>
+                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
+                  {stats.totalOrders.toLocaleString()}
+                </div>
+                <div className="text-blue-200 text-lg font-medium">Total Orders</div>
               </div>
-            ))}
-          </div>
+              
+              <div className="group">
+                <div className="flex items-center justify-center mb-4">
+                  <Pill className="w-12 h-12 text-blue-200 mb-2" />
+                </div>
+                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
+                  {stats.totalMedicines.toLocaleString()}+
+                </div>
+                <div className="text-blue-200 text-lg font-medium">Medicines Available</div>
+              </div>
+              
+              <div className="group">
+                <div className="flex items-center justify-center mb-4">
+                  <Activity className="w-12 h-12 text-blue-200 mb-2" />
+                </div>
+                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
+                  24/7
+                </div>
+                <div className="text-blue-200 text-lg font-medium">Customer Support</div>
+              </div>
+              
+              <div className="group">
+                <div className="flex items-center justify-center mb-4">
+                  <Award className="w-12 h-12 text-blue-200 mb-2" />
+                </div>
+                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
+                  99.9%
+                </div>
+                <div className="text-blue-200 text-lg font-medium">Quality Guarantee</div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -239,8 +481,8 @@ function Home() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20 bg-gray-50">
+      {/* Testimonials Section with Backend Integration */}
+      <section className="py-20 bg-gray-50 relative">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
@@ -248,40 +490,191 @@ function Home() {
             </h2>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                name: "Sarah Johnson",
-                role: "Regular Customer",
-                content: "Medicare Pharmacy has been my go-to for all medications. Always genuine products and super fast delivery!"
-              },
-              {
-                name: "Robert Miller",
-                role: "Senior Citizen",
-                content: "The online ordering is so easy, and they always have my regular medications in stock. Great service!"
-              },
-              {
-                name: "Emma Davis",
-                role: "Working Mother",
-                content: "Perfect for busy parents! I can order my family's medicines online and they deliver right to our door."
-              }
-            ].map((testimonial, index) => (
-              <div key={index} className="bg-white rounded-2xl p-8 shadow-lg">
-                <div className="flex items-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+          {testimonialsLoading ? (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading testimonials...</p>
+            </div>
+          ) : testimonials.length > 0 ? (
+            <div className="grid md:grid-cols-3 gap-8">
+              {testimonials.map((testimonial) => (
+                <div key={testimonial._id} className="bg-white rounded-2xl p-8 shadow-lg">
+                  <div className="flex items-center mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Star 
+                        key={i} 
+                        className={`w-5 h-5 ${
+                          i < testimonial.rating 
+                            ? 'text-yellow-400 fill-current' 
+                            : 'text-gray-300'
+                        }`} 
+                      />
+                    ))}
+                  </div>
+                  <p className="text-gray-600 mb-6 leading-relaxed">"{testimonial.comment}"</p>
+                  <div>
+                    <div className="font-bold text-gray-900">{testimonial.fullName}</div>
+                    <div className="text-blue-600">
+                      {testimonial.profession || 'Verified Customer'}
+                    </div>
+                    <div className="text-sm text-gray-400 mt-1">
+                      {formatDate(testimonial.createdAt)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <Star className="w-16 h-16 mx-auto mb-4" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">No reviews yet</h3>
+              <p className="text-gray-500">Be the first to share your experience with Medicare Pharmacy!</p>
+            </div>
+          )}
+        </div>
+
+        {/* Add Review Button */}
+        <button
+          onClick={() => setShowReviewForm(true)}
+          className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center transform hover:scale-110 z-40"
+          title="Add Your Review"
+        >
+          <Plus className="w-8 h-8" />
+        </button>
+      </section>
+
+      {/* Review Form Modal */}
+      {showReviewForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">Share Your Review</h3>
+              <button
+                onClick={closeModal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Error Message */}
+            {submitError && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start space-x-3">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="text-red-700 text-sm">{submitError}</div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmitReview} className="space-y-6">
+              {/* Star Rating */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rating *
+                </label>
+                <div className="flex items-center space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => handleStarClick(star)}
+                      className="p-1 hover:scale-110 transition-transform"
+                    >
+                      <Star
+                        className={`w-8 h-8 ${
+                          star <= reviewForm.rating
+                            ? 'text-yellow-400 fill-current'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    </button>
                   ))}
                 </div>
-                <p className="text-gray-600 mb-6 leading-relaxed">"{testimonial.content}"</p>
-                <div>
-                  <div className="font-bold text-gray-900">{testimonial.name}</div>
-                  <div className="text-blue-600">{testimonial.role}</div>
+              </div>
+
+              {/* Comment */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Review *
+                </label>
+                <textarea
+                  name="comment"
+                  value={reviewForm.comment}
+                  onChange={handleInputChange}
+                  rows="4"
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="Share your experience with Medicare Pharmacy..."
+                  required
+                  maxLength="1000"
+                />
+                <div className="text-xs text-gray-500 mt-1">
+                  {reviewForm.comment.length}/1000 characters
                 </div>
               </div>
-            ))}
+
+              {/* Full Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={reviewForm.fullName}
+                  onChange={handleInputChange}
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="Enter your full name"
+                  required
+                  maxLength="100"
+                />
+              </div>
+
+              {/* Profession */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Profession (Optional)
+                </label>
+                <input
+                  type="text"
+                  name="profession"
+                  value={reviewForm.profession}
+                  onChange={handleInputChange}
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="e.g., Doctor, Teacher, Student"
+                  maxLength="100"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5 mr-2" />
+                      Submit Review
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </section>
+      )}
 
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
