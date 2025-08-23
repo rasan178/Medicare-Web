@@ -147,7 +147,7 @@ function ProfileDashboard() {
                   </div>
                   <div className="text-white">
                     <p className="font-semibold text-lg">Patient ID</p>
-                    <p className="text-white/80 text-sm">#{profile.email?.split('@')[0]?.toUpperCase() || 'N/A'}</p>
+                    <p className="text-white/80 text-sm">#{profile.name}{profile.phone ? profile.phone.replace(/\D/g, '').slice(-4) : '0000'}</p>
                   </div>
                 </div>
               </div>
