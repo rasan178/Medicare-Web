@@ -17,7 +17,10 @@ import {
   MapPin,
   Star,
   CheckCircle,
-  ShoppingBag
+  ShoppingBag,
+  Plus,
+  X,
+  Send
 } from 'lucide-react';
 
 function Home() {
@@ -27,6 +30,14 @@ function Home() {
     totalRevenue: '0.00'
   });
   const [loading, setLoading] = useState(true);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 0,
+    comment: '',
+    fullName: '',
+    profession: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchHomeStats();
@@ -62,6 +73,61 @@ function Home() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStarClick = (rating) => {
+    setReviewForm(prev => ({ ...prev, rating }));
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setReviewForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+    if (reviewForm.rating === 0) {
+      alert('Please select a rating');
+      return;
+    }
+    if (!reviewForm.comment.trim() || !reviewForm.fullName.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // Here you would typically submit to your API
+      console.log('Submitting review:', reviewForm);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Reset form and close modal
+      setReviewForm({
+        rating: 0,
+        comment: '',
+        fullName: '',
+        profession: ''
+      });
+      setShowReviewForm(false);
+      alert('Thank you for your review! It will be reviewed and published soon.');
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert('Error submitting review. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const closeModal = () => {
+    setShowReviewForm(false);
+    setReviewForm({
+      rating: 0,
+      comment: '',
+      fullName: '',
+      profession: ''
+    });
   };
 
   return (
@@ -316,8 +382,8 @@ function Home() {
         </div>
       </section>
 
-      {/* Testimonials Section */}
-      <section className="py-20 bg-gray-50">
+      {/* Testimonials Section with Add Review Button */}
+      <section className="py-20 bg-gray-50 relative">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
@@ -358,7 +424,133 @@ function Home() {
             ))}
           </div>
         </div>
+
+        {/* Add Review Button */}
+        <button
+          onClick={() => setShowReviewForm(true)}
+          className="fixed bottom-8 right-8 bg-blue-600 hover:bg-blue-700 text-white w-16 h-16 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center transform hover:scale-110 z-40"
+          title="Add Your Review"
+        >
+          <Plus className="w-8 h-8" />
+        </button>
       </section>
+
+      {/* Review Form Modal */}
+      {showReviewForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-3xl p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-gray-900">Share Your Review</h3>
+              <button
+                onClick={closeModal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitReview} className="space-y-6">
+              {/* Star Rating */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Rating *
+                </label>
+                <div className="flex items-center space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => handleStarClick(star)}
+                      className="p-1 hover:scale-110 transition-transform"
+                    >
+                      <Star
+                        className={`w-8 h-8 ${
+                          star <= reviewForm.rating
+                            ? 'text-yellow-400 fill-current'
+                            : 'text-gray-300'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Comment */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Review *
+                </label>
+                <textarea
+                  name="comment"
+                  value={reviewForm.comment}
+                  onChange={handleInputChange}
+                  rows="4"
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="Share your experience with Medicare Pharmacy..."
+                  required
+                />
+              </div>
+
+              {/* Full Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={reviewForm.fullName}
+                  onChange={handleInputChange}
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
+
+              {/* Profession */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Profession (Optional)
+                </label>
+                <input
+                  type="text"
+                  name="profession"
+                  value={reviewForm.profession}
+                  onChange={handleInputChange}
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="e.g., Doctor, Teacher, Student"
+                />
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors"
+                  disabled={submitting}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={submitting}
+                >
+                  {submitting ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                  ) : (
+                    <>
+                      <Send className="w-5 h-5 mr-2" />
+                      Submit Review
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-blue-600 to-blue-800 text-white">
