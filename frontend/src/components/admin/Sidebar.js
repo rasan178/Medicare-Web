@@ -133,8 +133,8 @@ function Sidebar() {
               <Heart className="w-4 h-4 text-green-600" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800">System Status</p>
-              <p className="text-xs text-green-600 font-medium">All Systems Operational</p>
+              <p className="text-sm font-semibold text-green-600 font-medium">All Systems Operational</p>
+              <p className="text-xs text-green-600 font-medium">Version 1.0</p>
             </div>
           </div>
         </div>
