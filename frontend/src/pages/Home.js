@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Link } from 'react-router-dom';
@@ -16,10 +16,54 @@ import {
   Mail,
   MapPin,
   Star,
-  CheckCircle
+  CheckCircle,
+  ShoppingBag
 } from 'lucide-react';
 
 function Home() {
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    totalMedicines: 0,
+    totalRevenue: '0.00'
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchHomeStats();
+  }, []);
+
+  const fetchHomeStats = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:5000/api/medicines/public/stats', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.stats) {
+        setStats(data.stats);
+      }
+    } catch (err) {
+      console.error('Home stats fetch error:', err);
+      // Keep default values on error
+      setStats({
+        totalOrders: 0,
+        totalMedicines: 0,
+        totalRevenue: '0.00'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -148,24 +192,57 @@ function Home() {
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* Updated Stats Section with Real Data */}
       <section className="py-20 bg-blue-600 text-white">
         <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
-            {[
-              { number: "50K+", label: "Happy Customers" },
-              { number: "1000+", label: "Medicines Available" },
-              { number: "24/7", label: "Customer Support" },
-              { number: "99.9%", label: "Uptime Guarantee" }
-            ].map((stat, index) => (
-              <div key={index} className="group">
-                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
-                  {stat.number}
+          {loading ? (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mx-auto mb-4"></div>
+              <p className="text-blue-100">Loading statistics...</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
+              <div className="group">
+                <div className="flex items-center justify-center mb-4">
+                  <ShoppingBag className="w-12 h-12 text-blue-200 mb-2" />
                 </div>
-                <div className="text-blue-200 text-lg font-medium">{stat.label}</div>
+                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
+                  {stats.totalOrders.toLocaleString()}
+                </div>
+                <div className="text-blue-200 text-lg font-medium">Total Orders</div>
               </div>
-            ))}
-          </div>
+              
+              <div className="group">
+                <div className="flex items-center justify-center mb-4">
+                  <Pill className="w-12 h-12 text-blue-200 mb-2" />
+                </div>
+                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
+                  {stats.totalMedicines.toLocaleString()}+
+                </div>
+                <div className="text-blue-200 text-lg font-medium">Medicines Available</div>
+              </div>
+              
+              <div className="group">
+                <div className="flex items-center justify-center mb-4">
+                  <Activity className="w-12 h-12 text-blue-200 mb-2" />
+                </div>
+                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
+                  24/7
+                </div>
+                <div className="text-blue-200 text-lg font-medium">Customer Support</div>
+              </div>
+              
+              <div className="group">
+                <div className="flex items-center justify-center mb-4">
+                  <Award className="w-12 h-12 text-blue-200 mb-2" />
+                </div>
+                <div className="text-5xl lg:text-6xl font-bold mb-2 group-hover:scale-110 transition-transform duration-300">
+                  99.9%
+                </div>
+                <div className="text-blue-200 text-lg font-medium">Quality Guarantee</div>
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
