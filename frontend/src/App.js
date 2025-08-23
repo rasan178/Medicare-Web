@@ -7,6 +7,7 @@ import { AdminAuthContextProvider, useAdminAuth } from './context/AdminAuthConte
 
 import Navbar from './components/Navbar';
 import AdminNavbar from './components/admin/AdminNavbar';
+import AdvancedChatbot from './components/AdvancedChatbot'; // Import the chatbot component
 import Home from './pages/Home';
 import Store from './pages/Store';
 import About from './pages/About';
@@ -55,6 +56,28 @@ function ConditionalNavbar() {
   }
   
   return <Navbar />;
+}
+
+// Component to conditionally render chatbot based on route
+function ConditionalChatbot() {
+  const location = useLocation();
+  
+  // Define routes where chatbot should NOT appear
+  const excludedRoutes = [
+    '/login',
+    '/register',
+    '/admin/login'
+  ];
+  
+  // Check if current path starts with admin routes (except login)
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  
+  // Don't show chatbot on excluded routes or admin routes
+  if (excludedRoutes.includes(location.pathname) || isAdminRoute) {
+    return null;
+  }
+  
+  return <AdvancedChatbot />;
 }
 
 function AppContent() {
@@ -134,6 +157,9 @@ function AppContent() {
           />
         </Routes>
       </main>
+      
+      {/* Conditionally render chatbot */}
+      <ConditionalChatbot />
     </div>
   );
 }
