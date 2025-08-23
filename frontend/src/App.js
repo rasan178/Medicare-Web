@@ -21,6 +21,7 @@ import Dashboard from './pages/admin/Dashboard';
 import Products from './pages/admin/Products';
 import AdminOrders from './pages/admin/Orders';
 import Reports from './pages/admin/Reports';
+import AdminTestimonials from './pages/admin/AdminTestimonials';
 
 // Protected Route Component for Admin Routes
 function ProtectedAdminRoute({ children }) {
@@ -110,6 +111,14 @@ function AppContent() {
             element={
               <ProtectedAdminRoute>
                 <Reports />
+              </ProtectedAdminRoute>
+            } 
+          />
+          <Route 
+            path="/admin/testimonials" 
+            element={
+              <ProtectedAdminRoute>
+                <AdminTestimonials />
               </ProtectedAdminRoute>
             } 
           />

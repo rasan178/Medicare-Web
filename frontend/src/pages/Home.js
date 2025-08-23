@@ -20,7 +20,8 @@ import {
   ShoppingBag,
   Plus,
   X,
-  Send
+  Send,
+  AlertCircle
 } from 'lucide-react';
 
 function Home() {
@@ -29,7 +30,9 @@ function Home() {
     totalMedicines: 0,
     totalRevenue: '0.00'
   });
+  const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [testimonialsLoading, setTestimonialsLoading] = useState(true);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     rating: 0,
@@ -38,15 +41,22 @@ function Home() {
     profession: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  // Get the base API URL
+  const getBaseUrl = () => {
+    return process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  };
 
   useEffect(() => {
     fetchHomeStats();
+    fetchTestimonials();
   }, []);
 
   const fetchHomeStats = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:5000/api/medicines/public/stats', {
+      const response = await fetch(`${getBaseUrl()}/api/medicines/public/stats`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -75,46 +85,126 @@ function Home() {
     }
   };
 
+  const fetchTestimonials = async () => {
+    try {
+      setTestimonialsLoading(true);
+      console.log('Fetching testimonials from:', `${getBaseUrl()}/api/testimonials/public`);
+      
+      const response = await fetch(`${getBaseUrl()}/api/testimonials/public`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      console.log('Testimonials response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Testimonials data:', data);
+      
+      if (data.success && data.testimonials) {
+        // Limit to 3 testimonials for display
+        setTestimonials(data.testimonials.slice(0, 3));
+      } else {
+        console.log('No testimonials found or invalid response structure');
+        setTestimonials([]);
+      }
+    } catch (err) {
+      console.error('Testimonials fetch error:', err);
+      // Keep empty array on error
+      setTestimonials([]);
+    } finally {
+      setTestimonialsLoading(false);
+    }
+  };
+
   const handleStarClick = (rating) => {
     setReviewForm(prev => ({ ...prev, rating }));
+    setSubmitError(''); // Clear any previous errors
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setReviewForm(prev => ({ ...prev, [name]: value }));
+    setSubmitError(''); // Clear any previous errors
   };
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
+    setSubmitError('');
+    
+    // Client-side validation
     if (reviewForm.rating === 0) {
-      alert('Please select a rating');
+      setSubmitError('Please select a rating');
       return;
     }
-    if (!reviewForm.comment.trim() || !reviewForm.fullName.trim()) {
-      alert('Please fill in all required fields');
+    if (!reviewForm.comment.trim()) {
+      setSubmitError('Please enter a comment');
+      return;
+    }
+    if (!reviewForm.fullName.trim()) {
+      setSubmitError('Please enter your full name');
+      return;
+    }
+    if (reviewForm.comment.length > 1000) {
+      setSubmitError('Comment must be less than 1000 characters');
+      return;
+    }
+    if (reviewForm.fullName.length > 100) {
+      setSubmitError('Full name must be less than 100 characters');
       return;
     }
 
     setSubmitting(true);
+    
     try {
-      // Here you would typically submit to your API
-      console.log('Submitting review:', reviewForm);
+      console.log('Submitting review to:', `${getBaseUrl()}/api/testimonials/`);
+      console.log('Review data:', reviewForm);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Reset form and close modal
-      setReviewForm({
-        rating: 0,
-        comment: '',
-        fullName: '',
-        profession: ''
+      const response = await fetch(`${getBaseUrl()}/api/testimonials/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: reviewForm.fullName.trim(),
+          profession: reviewForm.profession.trim(),
+          rating: reviewForm.rating,
+          comment: reviewForm.comment.trim()
+        })
       });
-      setShowReviewForm(false);
-      alert('Thank you for your review! It will be reviewed and published soon.');
+
+      console.log('Submit response status:', response.status);
+      
+      const data = await response.json();
+      console.log('Submit response data:', data);
+
+      if (response.ok && data.success) {
+        // Reset form and close modal
+        setReviewForm({
+          rating: 0,
+          comment: '',
+          fullName: '',
+          profession: ''
+        });
+        setShowReviewForm(false);
+        alert(data.message || 'Thank you for your review! It will be reviewed and published soon.');
+        
+        // Refresh testimonials to show updated list
+        fetchTestimonials();
+      } else {
+        // Handle server errors
+        const errorMessage = data.message || data.error || 'Error submitting review. Please try again.';
+        setSubmitError(errorMessage);
+        console.error('Server error:', data);
+      }
     } catch (error) {
       console.error('Error submitting review:', error);
-      alert('Error submitting review. Please try again.');
+      setSubmitError('Network error. Please check your connection and try again.');
     } finally {
       setSubmitting(false);
     }
@@ -122,11 +212,20 @@ function Home() {
 
   const closeModal = () => {
     setShowReviewForm(false);
+    setSubmitError('');
     setReviewForm({
       rating: 0,
       comment: '',
       fullName: '',
       profession: ''
+    });
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     });
   };
 
@@ -382,7 +481,7 @@ function Home() {
         </div>
       </section>
 
-      {/* Testimonials Section with Add Review Button */}
+      {/* Testimonials Section with Backend Integration */}
       <section className="py-20 bg-gray-50 relative">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
@@ -391,38 +490,49 @@ function Home() {
             </h2>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                name: "Sarah Johnson",
-                role: "Regular Customer",
-                content: "Medicare Pharmacy has been my go-to for all medications. Always genuine products and super fast delivery!"
-              },
-              {
-                name: "Robert Miller",
-                role: "Senior Citizen",
-                content: "The online ordering is so easy, and they always have my regular medications in stock. Great service!"
-              },
-              {
-                name: "Emma Davis",
-                role: "Working Mother",
-                content: "Perfect for busy parents! I can order my family's medicines online and they deliver right to our door."
-              }
-            ].map((testimonial, index) => (
-              <div key={index} className="bg-white rounded-2xl p-8 shadow-lg">
-                <div className="flex items-center mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                  ))}
+          {testimonialsLoading ? (
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading testimonials...</p>
+            </div>
+          ) : testimonials.length > 0 ? (
+            <div className="grid md:grid-cols-3 gap-8">
+              {testimonials.map((testimonial) => (
+                <div key={testimonial._id} className="bg-white rounded-2xl p-8 shadow-lg">
+                  <div className="flex items-center mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Star 
+                        key={i} 
+                        className={`w-5 h-5 ${
+                          i < testimonial.rating 
+                            ? 'text-yellow-400 fill-current' 
+                            : 'text-gray-300'
+                        }`} 
+                      />
+                    ))}
+                  </div>
+                  <p className="text-gray-600 mb-6 leading-relaxed">"{testimonial.comment}"</p>
+                  <div>
+                    <div className="font-bold text-gray-900">{testimonial.fullName}</div>
+                    <div className="text-blue-600">
+                      {testimonial.profession || 'Verified Customer'}
+                    </div>
+                    <div className="text-sm text-gray-400 mt-1">
+                      {formatDate(testimonial.createdAt)}
+                    </div>
+                  </div>
                 </div>
-                <p className="text-gray-600 mb-6 leading-relaxed">"{testimonial.content}"</p>
-                <div>
-                  <div className="font-bold text-gray-900">{testimonial.name}</div>
-                  <div className="text-blue-600">{testimonial.role}</div>
-                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <div className="text-gray-400 mb-4">
+                <Star className="w-16 h-16 mx-auto mb-4" />
               </div>
-            ))}
-          </div>
+              <h3 className="text-xl font-semibold text-gray-600 mb-2">No reviews yet</h3>
+              <p className="text-gray-500">Be the first to share your experience with Medicare Pharmacy!</p>
+            </div>
+          )}
         </div>
 
         {/* Add Review Button */}
@@ -448,6 +558,14 @@ function Home() {
                 <X className="w-6 h-6" />
               </button>
             </div>
+
+            {/* Error Message */}
+            {submitError && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start space-x-3">
+                <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                <div className="text-red-700 text-sm">{submitError}</div>
+              </div>
+            )}
 
             <form onSubmit={handleSubmitReview} className="space-y-6">
               {/* Star Rating */}
@@ -488,7 +606,11 @@ function Home() {
                   className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   placeholder="Share your experience with Medicare Pharmacy..."
                   required
+                  maxLength="1000"
                 />
+                <div className="text-xs text-gray-500 mt-1">
+                  {reviewForm.comment.length}/1000 characters
+                </div>
               </div>
 
               {/* Full Name */}
@@ -504,6 +626,7 @@ function Home() {
                   className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   placeholder="Enter your full name"
                   required
+                  maxLength="100"
                 />
               </div>
 
@@ -519,6 +642,7 @@ function Home() {
                   onChange={handleInputChange}
                   className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                   placeholder="e.g., Doctor, Teacher, Student"
+                  maxLength="100"
                 />
               </div>
 
