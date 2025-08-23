@@ -7,7 +7,8 @@ import {
   Package, 
   BarChart3, 
   Heart, 
-  Shield 
+  Shield,
+  MessageSquareText 
 } from 'lucide-react';
 
 function Sidebar() {
@@ -32,6 +33,13 @@ function Sidebar() {
       icon: Package,
       description: 'Medical Inventory'
     },
+    { 
+      path: '/admin/testimonials', 
+      label: 'Testimonials', 
+      icon: MessageSquareText,
+      description: 'User Feedback & Reviews'
+    },
+
     { 
       path: '/admin/reports', 
       label: 'Reports', 
